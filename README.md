@@ -1,7 +1,7 @@
 # CS3338 Final Project
-
+Jira Link:https://cs3338-group-8.atlassian.net/jira/core/projects/CFP/board?fil$
 ## Role-Based Internal Platform for Targeted Content Delivery
-
+Group8
 This project is based on a role-based internal platform for the Santa Barbara County Public Defender’s Office. The system is designed as a SharePoint Online intranet that displays different content depending on the user’s role.
 
 The platform uses SharePoint Framework (SPFx), React, TypeScript, SharePoint Lists, Microsoft Entra ID, Microsoft Graph API, Azure Functions, and PowerBI. The goal is to provide one centralized internal site where employees can access announcements, resources, assignments, directories, calendars, and role-specific tools.
@@ -75,5 +75,3 @@ Make sure Docker Desktop is open.
 Then run:
 ```bash
 docker compose up
-Jira Link:https://cs3338-group-8.atlassian.net/jira/core/projects/CFP/board?filter=&groupBy=status
-Group 8 
