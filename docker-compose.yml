@@ -1,0 +1,6 @@
+services:
+  reverse-proxy:
+    image: nginx:latest
+    container_name: pd_intranet_nginx_proxy
+    ports:
+      - "8080:80"
