@@ -1,0 +1,21 @@
+\documentclass{article}
+
+\begin{document}
+
+The system architecture is organized into three layers: identity and authentication (Azure Active Directory / Entra ID), the SharePoint Online platform (lists, pages, site settings), and the SPFx application layer (custom web parts, Azure Functions, Microsoft Graph API integrations). Active Directory security groups sync to Entra ID which SharePoint uses to enforce permissions. SPFx web parts run client-side in the user’s browser and call SharePoint REST API and Microsoft Graph endpoints via PnP.js.
+
+\section*{System Architecture Components}
+
+\begin{itemize}
+    \item \textbf{Frontend:} SharePoint Framework (SPFx) 1.18, React 17, TypeScript 4.x
+    \item \textbf{Data/API:} PnP.js, Microsoft Graph API, SharePoint REST API
+    \item \textbf{Backend:} Azure Functions (Python) for Assignments quiz verification and LOP PDF import
+    \item \textbf{Analytics:} PowerBI embedded dashboards
+    \item \textbf{Identity:} Azure Active Directory / Entra ID
+    \item \textbf{Build:} Node.js 18, pnpm, Gulp, Webpack
+    \item \textbf{Version Control:} Git / GitHub (\texttt{steventhestudent/sbpubdef})
+    \item \textbf{Deployment:} SharePoint App Catalog (\texttt{.sppkg})
+\end{itemize}
+
+
+\end{document}
