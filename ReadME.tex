@@ -1,0 +1,108 @@
+\documentclass{article}
+
+\usepackage[T1]{fontenc}
+\usepackage{listings}
+\usepackage{xcolor}
+
+\lstset{
+    basicstyle=\ttfamily,
+    breaklines=true,
+    frame=single
+}
+
+\begin{document}
+
+\title{CS3338 Final Project}
+\author{Group8}
+\date{}
+\maketitle
+
+\section*{Jira Link}
+
+\texttt{https://cs3338-group-8.atlassian.net/jira/core/projects/CFP/board}
+
+\section*{Role-Based Internal Platform for Targeted Content Delivery}
+
+This project is based on a role-based internal platform for the Santa Barbara County Public Defender’s Office. The system is designed as a SharePoint Online intranet that displays different content depending on the user’s role.
+
+The platform uses SharePoint Framework (SPFx), React, TypeScript, SharePoint Lists, Microsoft Entra ID, Microsoft Graph API, Azure Functions, and PowerBI. The goal is to provide one centralized internal site where employees can access announcements, resources, assignments, directories, calendars, and role-specific tools.
+
+\section*{Project Objective}
+
+The objective of this project is to organize and document the design, requirements, workflow, testing, and deployment plan for a secure role-based intranet platform.
+
+Instead of having multiple disconnected SharePoint pages or manually managed permissions, the system uses role-based access through Microsoft Entra ID groups. Each user sees only the tools and content that match their assigned role.
+
+\section*{Main Features}
+
+\begin{itemize}
+    \item Role-based navigation and content visibility
+    \item Announcements filtered by department or role
+    \item Staff Directory
+    \item Expert Witness Directory
+    \item Office Hoteling desk reservation system
+    \item Attorney Workload Tracker
+    \item LOP Procedure Checklist
+    \item CDD Resource Guides
+    \item Upcoming Events and Calendar integration
+    \item Assignments and training workflow
+    \item PowerBI Urgency Portal
+    \item Content Management System for administrators
+\end{itemize}
+
+\section*{User Roles}
+
+The platform supports the following roles:
+
+\begin{itemize}
+    \item IT
+    \item Compliance Officer
+    \item HR
+    \item Trial Supervisor
+    \item Attorney
+    \item CDD
+    \item LOP
+    \item PD-Intranet
+    \item Everyone / Guest
+\end{itemize}
+
+Users with higher permissions, such as IT, can access more administrative tools. General users only see the content meant for their role.
+
+\section*{Technology Stack}
+
+\begin{itemize}
+    \item SharePoint Online
+    \item SharePoint Framework (SPFx)
+    \item React
+    \item TypeScript
+    \item Node.js 18
+    \item pnpm
+    \item Gulp
+    \item Webpack
+    \item PnP.js
+    \item Microsoft Graph API
+    \item Microsoft Entra ID
+    \item Azure Functions
+    \item PowerBI
+    \item SharePoint Lists
+\end{itemize}
+
+\section*{Docker Setup}
+
+This repository includes a Docker Compose file for the Docker portion of the CS3338 final project.
+
+The actual production system is deployed through SharePoint Online as a SharePoint Framework \texttt{.sppkg} package. Because SharePoint Online, Microsoft Entra ID, Microsoft Graph API, PowerBI, and SharePoint Lists are cloud services, they are not fully containerized locally.
+
+The Docker setup uses an NGINX container as a lightweight placeholder service to demonstrate container setup and local service execution.
+
+\section*{Run Docker}
+
+Make sure Docker Desktop is open.
+
+Then run:
+
+\begin{lstlisting}[language=bash]
+docker compose up
+\end{lstlisting}
+
+\end{document}
