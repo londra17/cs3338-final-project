@@ -1,0 +1,736 @@
+\documentclass[12pt]{article}
+
+% LaTeX-ready preamble added for Overleaf/pdfLaTeX compatibility.
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{mathptmx}
+\usepackage[margin=1in]{geometry}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{enumitem}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{xcolor}
+\usepackage[hidelinks]{hyperref}
+\usepackage{caption}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{6pt}
+\emergencystretch=2em
+
+% If a referenced figure is missing, compile anyway and show a placeholder.
+\let\OldIncludegraphics\includegraphics
+\renewcommand{\includegraphics}[2][]{%
+  \IfFileExists{#2}{\OldIncludegraphics[#1]{#2}}{%
+    \fbox{\parbox{0.85\linewidth}{\centering Missing figure: \texttt{\detokenize{#2}}}}%
+  }%
+}
+
+\begin{document}
+% Auto-converted from CS 3338 Copy of SoftwareDesignDocument'26 (1).pdf
+\begin{titlepage}
+\centering
+\vspace*{1in}
+{\LARGE\bfseries Software Design Document\\[0.25in]}
+{\large for Role-Based Internal Platform for Targeted Content Delivery\\[0.4in]}
+Version 1.13\\
+Prepared by Alondra Perez
+Daniel Solares
+Jake Osorio\\
+Justin Han
+Mario Nunez\\
+California State University, Los Angeles ECST c/o 2026\\
+Sponsored By: Santa Barbara Public Defender's Office\\
+May 8, 2026\\
+\vfill
+\end{titlepage}
+
+\tableofcontents
+\clearpage
+\section*{Revision History}
+\addcontentsline{toc}{section}{Revision History}
+
+Version Date Snapshot Summary of Changes 1.0 (05/1/2026 - 6/1/2026) Snapshot 1 Created initial SDD structure; added TOC, templates, and early architecture overview; added initial design considerations and system overview. 1.1 6/2/2026 -- 9/4/2026) Snapshot 2 Added role-based architecture details; added design for Announcements, Events, and Calendar; expanded technology stack and interface descriptions. 1.2 (9/5/2026 -- 1/1/2027) Snapshot 3 Added detailed designs for Staff Directory, Expert Witness Directory, Office Hoteling, and Workload Tracker; added component diagrams and UI flow models. 1.13 (1/2/2027 -- 5/1/2027) Snapshot 4 Finalized all web part designs; added CDD Resource Guides, LOP Checklist, Assignments, and Urgency Portal; completed architecture, UI, and component documentation.
+
+\section{Introduction}
+
+\subsection{Purpose}
+
+The purpose of this Software Design Document (SDD) is to describe the design and architecture of the Santa Barbara County Public Defender's Office Role-Based SharePoint intranet platform. The platform provides members of the Santa Barbara County Public Defender's Office with a secure, audience-targeted environment that streamlines access to resources, document lookups, announcements, and task management. This document is intended for project managers, software engineers, system administrators, and other stakeholders involved in the development, implementation, and maintenance of the system. The platform is built using SharePoint Framework (SPFx) with React and TypeScript.
+
+\subsection{Document Conventions}
+
+This document follows consistent typographical conventions. Headings are in bold text to separate each section. The font is consistently set to Times New Roman. Titles are in 14pt font with descriptive text in 12pt font.
+
+\subsection{Intended Audience and Reading Suggestions}
+
+This document is intended for staff within the Santa Barbara Public Defender's Office including attorneys, IT personnel, administrators, and new hires. Readers should begin with the overview sections to understand the system's goals, then move to sections most relevant to their responsibilities. IT staff should focus on system requirements and design details. General users and administrators may focus on role functions and workflows.
+
+\subsection{System Overview}
+
+The system provides a SharePoint communication site with a role-based internal environment for delivering targeted content to Santa Barbara Public Defender's Office employees. Each employee is assigned a specific role based on their job title. This allows them access to a homepage tailored to display documents, tools, announcements, and tasks most relevant to their work. Roles also determine what documents, pages, and features a user can access or update, ensuring sensitive information remains limited to authorized personnel.
+
+\section{Design Considerations}
+
+The system is a unified, role-based internal platform built on SharePoint Online, enhanced with custom SPFx components. Rather than maintaining separate sites for each department or role, the platform delivers personalized content dynamically based on Azure Entra ID (Active Directory) group membership. The system replaces the legacy multi-site workflow with a single centralized SharePoint site that filters and renders content according to user roles.
+
+\subsection{Assumptions and Dependencies}
+
+Assumptions:
+
+\begin{itemize}[leftmargin=*]
+\item  The platform will be deployed within the Santa Barbara County Public Defender's Office SharePoint Online environment under the county's existing Microsoft 365 tenant.
+\item  All users will access the portal through modern web browsers on county-issued devices with secure network access.
+\item  User authentication and role assignments will be managed through Azure Active Directory (Entra ID) with permissions synchronized to SharePoint groups.
+\item  The county's IT department will manage Active Directory security groups for onboarding, role changes, and offboarding.
+\end{itemize}
+
+\subsection{General Constraints}
+
+The system operates within the constraints of SharePoint Online and the Microsoft 365 ecosystem. Custom code is limited to SPFx web parts and Azure Functions. All data is stored in SharePoint lists. Authentication is managed exclusively through Azure Entra ID. The development tenant (csproject25) differs from the production tenant and requires separate environment configuration.
+
+\subsection{Goals and Guidelines}
+
+The primary goals are: zero manual SharePoint permission management, a single codebase delivering nine distinct role-based user experiences, modular web parts that can be maintained independently, and a complete documentation package enabling county IT to maintain and extend the system without external assistance.
+
+\subsection{Development Methods}
+
+The project followed an Agile development methodology with two-week sprints. Bi-weekly client check-ins with Luis Ramirez and bi-weekly advisor meetings with Dr. Sun provided external accountability. Development used GitHub for version control with feature branching and pull requests. The team used pnpm as the package manager and Gulp for the SPFx build pipeline.
+
+\section{Architectural Strategies}
+
+The platform uses a hybrid role-enforcement strategy combining SharePoint's native audience targeting with custom SPFx role detection logic. The PDRoleBasedSelect component reads the user's Azure Entra ID group membership at runtime and selects the appropriate view to render. This approach allows a single web part codebase to deliver role-differentiated experiences without duplicating pages or components. The role priority order from highest to lowest privilege is: IT, ComplianceOfficer, HR, TrialSupervisor, Attorney, CDD, LOP, PDIntranet, Everyone. When a user belongs to multiple groups the highest-priority role governs their view.
+
+\section{System Architecture}
+
+\subsection{Architectural Overview}
+
+The system architecture is organized into three layers: identity and authentication (Azure Active Directory / Entra ID), the SharePoint Online platform (lists, pages, site settings), and the SPFx application layer (custom web parts, Azure Functions, Microsoft Graph API integrations). Active Directory security groups sync to Entra ID which SharePoint uses to enforce permissions. SPFx web parts run client-side in the user's browser and call SharePoint REST API and Microsoft Graph endpoints via PnP.js.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth]{figures/SDD_page_9.png}
+\caption{Original visual content from page 9 of the Software Design Document.}
+\end{figure}
+
+\subsubsection{Level 0 Data Flow Diagram (DFD)}
+
+\subsubsection{Level 1 data flow diagram (Subsystem Interaction)}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth]{figures/SDD_page_10.png}
+\caption{Original visual content from page 10 of the Software Design Document.}
+\end{figure}
+
+\subsubsection{Control Flow Diagram (CFD)}
+
+\subsection{Technology Stack}
+
+\begin{itemize}[leftmargin=*]
+\item  Frontend: SharePoint Framework (SPFx) 1.18, React 17, TypeScript 4.x
+\item  Data/API: PnP.js, Microsoft Graph API, SharePoint REST API
+\item  Backend: Azure Functions (Python) for Assignments quiz verification and LOP PDF import
+\item  Analytics: PowerBI embedded dashboards
+\item  Identity: Azure Active Directory / Entra ID
+\item  Build: Node.js 18, pnpm, Gulp, Webpack
+\item  Version Control: Git / GitHub (steventhestudent/sbpubdef)
+\item  Deployment: SharePoint App Catalog (.sppkg)
+\end{itemize}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth]{figures/SDD_page_11.png}
+\caption{Original visual content from page 11 of the Software Design Document.}
+\end{figure}
+
+\section{Policies and Tactics}
+
+Access control is enforced at multiple levels: navigation tab visibility via SharePoint audience targeting, web part visibility via SPFx role detection logic (PDRoleBasedSelect), SharePoint list permissions for data-level access control, and Azure Function authentication for privileged backend operations. Edit controls are visible only to IT and Compliance Officer roles. The SiteSettings list is restricted to IT only.
+
+\section{Detailed System Design}
+
+\subsection{ExpertWitnessDirectory Web Part}
+
+\subsubsection{Responsibilities}
+
+Provides a searchable directory of expert witnesses available to attorneys and other authorized staff. Displays name, specialty, availability status, contact information, and field of expertise.
+
+\subsubsection{Constraints}
+
+Requires an active PnP wrapper connection to the SharePoint site. Performance depends on the size of the expert witness list. Visible to all authenticated roles.
+
+\subsubsection{Composition}
+
+Composed of ExpertWitnessDirectory.tsx (web part entry), ExpertWitnessApi (data access layer), and a search/filter UI component. Uses PNPWrapper for SharePoint list access.
+
+\subsubsection{Uses/Interactions}
+
+Calls ExpertWitnessApi to retrieve list items from the ExpertWitnesses SharePoint list. Renders results in a filterable card or table layout. Uses the Collapsible component for collapse/expand behavior.
+
+\subsubsection{Resources}
+
+SharePoint list: ExpertWitnesses. PnP.js for data retrieval. No external API dependencies.
+
+\subsubsection{Interface/Exports}
+
+Exported as a standard SPFx web part. No public API surface. Interacts with SharePoint lists via PnP.js internally.
+
+\subsection{StaffDirectory Web Part}
+
+\subsubsection{Responsibilities}
+
+Provides a searchable directory of Public Defender staff members. Displays name, title, phone, extension, and cell number. Allows any authenticated user to look up colleagues across all offices.
+
+\subsubsection{Constraints}
+
+Requires PNPWrapper and access to the StaffDirectory SharePoint list. Search is performed client-side against loaded data.
+
+\subsubsection{Composition}
+
+Composed of StaffDirectory.tsx (main component), StaffDirectoryWebPart.ts (web part manifest and properties), and supporting interface files. Uses PNPWrapper for data access.
+
+\subsubsection{Uses/Interactions}
+
+Fetches staff records from the StaffDirectory SharePoint list. Renders as a searchable list with avatar initials, name, title, and contact details. Supports filtering by any field.
+
+\subsubsection{Resources}
+
+SharePoint list: StaffDirectory. PnP.js for data retrieval.
+
+\subsubsection{Interface/Exports}
+
+Standard SPFx web part export. No external API surface.
+
+\subsection{Assignments Web Part}
+
+\subsubsection{Responsibilities}
+
+Provides a training, acknowledgement, and task management system. Staff view and complete assigned items from a catalog published by administrators. Supports three assignment types: Training (with video embed and quiz gate), Acknowledgement (explicit sign-off), and Task (action item with due date).
+
+\subsubsection{Constraints}
+
+Requires five SharePoint lists: Assignments, AssignmentCatalog, AssignmentSteps, and supporting quiz lists. Quiz submission verification requires an Azure Function (PortalAssignmentsMutate) to be deployed and configured. YouTube embeds require network access to YouTube or YouTube-nocookie domains.
+
+\subsubsection{Composition}
+
+Composed of AssignmentsCenter.tsx (list view), AssignmentFlow.tsx (step-by-step player), AssignmentFlowSidebar.tsx (progress navigation), AssignmentFlowQuizPane.tsx (quiz UI), EmbedPlayer.tsx (video embed), AssignmentsMutationsApi.ts (Azure Function client), and AssignmentsSpService.ts (SharePoint data service).
+
+\subsubsection{Uses/Interactions}
+
+Reads UserAssignmentItem records from the Assignments list. Fetches AssignmentCatalogItem definitions and AssignmentStepItem steps. Submits quiz answers to the Azure Function for server-side verification. Updates assignment status and percentComplete in the Assignments list.
+
+\subsubsection{Resources}
+
+SharePoint lists: Assignments, AssignmentCatalog, AssignmentSteps. Azure Function: PortalAssignmentsMutate. Microsoft Graph API for calendar event creation (optional).
+
+\subsubsection{Interface/Exports}
+
+Standard SPFx web part. AssignmentTypes.ts exports shared TypeScript types: AssignmentCatalogItem, AssignmentStepItem, UserAssignmentItem, AssignmentQuizQuestion, QuizAttemptResult.
+
+\subsection{Office Hoteling Web Part}
+
+\subsubsection{Responsibilities}
+
+Provides a real-time desk reservation system. Staff select a location and station, view a weekly availability calendar, and book Morning (8am-12pm) or Afternoon (12pm-5pm) time slots. Sends email confirmation upon successful booking.
+
+\subsubsection{Constraints}
+
+Visible only to IT, PD-Intranet, Attorney, CDD, and LOP roles. Trial Supervisor, HR, Compliance Officer, and Guest do not have access. Requires the HotelingReservations SharePoint list. Delete is disabled within 24 hours of the reservation time.
+
+\subsubsection{Composition}
+
+Composed of OfficeHoteling.tsx (web part entry with role gating via PDRoleBasedSelect), OfficeHotelingInner.tsx (main reservation UI), and OfficeHotelingPresentational.tsx (display layer). Role enforcement uses Utils.isIT() and PDRoleBasedSelect.
+
+\subsubsection{Uses/Interactions}
+
+Reads and writes to the HotelingReservations SharePoint list. Uses SharePoint's built-in email notification capability for confirmation messages. Renders a weekly grid showing available, booked, and past time slots with color coding.
+
+\subsubsection{Resources}
+
+SharePoint list: HotelingReservations. PnP.js for list operations. No external API dependencies.
+
+\subsubsection{Interface/Exports}
+
+Standard SPFx web part export via OfficeHotelingWebPart.ts.
+
+\subsection{Attorney Workload Tracker Web Part}
+
+\subsubsection{Responsibilities}
+
+Provides hierarchical case distribution visibility for Trial Supervisors, HR, and IT administrators. Users drill down from office location to case type to individual attorney with live case counts. Unauthorized roles see a "Not privileged enough" message.
+
+\subsubsection{Constraints}
+
+Full workload view is restricted to TrialSupervisor, HR, and IT roles. Attorney, CDD, LOP, PDIntranet, Compliance Officer, and Everyone roles see only the restricted message. Requires SharePoint data source for case distribution data.
+
+\subsubsection{Composition}
+
+Composed of AttorneyWorkload.tsx (web part entry with PDRoleBasedSelect role gating) and AttorneyWorkload component (src/components/attorneyWorkload/AttorneyWorkload.tsx) for the full hierarchical view. PDIntranetView renders the restricted message for unauthorized roles.
+
+\subsubsection{Uses/Interactions}
+
+Fetches case distribution data from SharePoint. Renders a searchable, filterable hierarchical tree: Location $\rightarrow$ Case Type $\rightarrow$ Attorney with counts at each level. Uses the Collapsible wrapper component.
+
+\subsubsection{Resources}
+
+SharePoint list data for case assignments. PnP.js for data retrieval.
+
+\subsubsection{Interface/Exports}
+
+Default export from AttorneyWorkload.tsx as a standard SPFx web part.
+
+\subsection{LOP Procedure Checklist Web Part}
+
+\subsubsection{Responsibilities}
+
+Provides Legal Office Professionals with a searchable library of office procedures organized by category. Each procedure contains ordered steps with support for PDF attachments, YouTube video embeds, and rich text content. IT staff can import PDFs as structured procedure steps via an Azure Function backend.
+
+\subsubsection{Constraints}
+
+IT-only editing; all authenticated users can view. PDF import requires the LopProcedureChecklistImport Azure Function to be deployed. YouTube embeds require external network access. Procedures are stored across two SharePoint lists.
+
+\subsubsection{Composition}
+
+Composed of ProcedureChecklist.tsx (main UI), ProcedureChecklistIngestApi.ts (PDF import API client), ProcedureChecklistIngestProgressBar.tsx (import progress UI), and the LOPProcedureChecklist and ProcedureSteps SharePoint lists as the data store.
+
+\subsubsection{Uses/Interactions}
+
+Reads procedures from LOPProcedureChecklist and steps from ProcedureSteps SharePoint lists via PnP.js. PDF import triggers the LopProcedureChecklistImport Azure Function which processes uploaded PDFs into structured step records. Supports search across procedure names and categories.
+
+\subsubsection{Resources}
+
+SharePoint lists: LOPProcedureChecklist, ProcedureSteps. Azure Functions: LopProcedureChecklistImport, LopProcedureChecklistImportStart, LopProcedureChecklistImportWorker.
+
+\subsubsection{Interface/Exports}
+
+Standard SPFx web part export.
+
+\subsection{CDD Resource Guides Web Part}
+
+\subsubsection{Responsibilities}
+
+Provides Capital Defense Division staff with a curated library of resources organized in a hierarchical folder structure. Supports document browsing, multi-word search across document names and metadata tags, multi-select for email sharing, and expand/collapse navigation of categories and subcategories.
+
+\subsubsection{Constraints}
+
+Reads from a SharePoint document library using the SharePoint REST API directly. Visible to CDD role and IT administrators. External links are stored as .url files and parsed at runtime to extract the actual URL.
+
+\subsubsection{Composition}
+
+Composed of CDDResourceGuides.tsx which handles all data fetching, search, expand/collapse state, multi-select, and email sharing. Organized into Categories (top-level folders), Subcategories (nested folders), and Documents (files and external links).
+
+\subsubsection{Uses/Interactions}
+
+Calls SharePoint REST API to retrieve folder and file structure from the CDD document library. Parses .url files for external links. Uses SharePoint "Label" and "Tags" columns for display names and search metadata. Generates mailto links for email sharing of selected documents.
+
+\subsubsection{Resources}
+
+SharePoint document library for CDD resources. SharePoint REST API for folder and file retrieval. No PnP.js dependency --- uses direct REST calls.
+
+\subsubsection{Interface/Exports}
+
+Exported from src/components/cddResourceGuides/CDDResourceGuides.tsx and used by the portal resources web part role panels.
+
+\subsection{Urgency Portal (PowerBI) Web Part}
+
+\subsubsection{Responsibilities}
+
+Embeds a PowerBI analytics dashboard within the SharePoint intranet for supervisory decision-making. Displays real-time case metrics and operational data. Access is restricted to IT and Trial Supervisor roles.
+
+\subsubsection{Constraints}
+
+Visible only to IT and TrialSupervisor roles. All other roles receive an empty render. Requires configurable PowerBI report URL and visual URL properties set in the web part configuration. Depends on PowerBI licensing in the county's Microsoft 365 tenant.
+
+\subsubsection{Composition}
+
+Composed of UrgencyPortal.tsx (web part entry with PDRoleBasedSelect role gating using Utils.isIT() and Utils.hasRole('TRIALSUPERVISOR')) and UrgencyPortal component (src/components/urgencyPortal/UrgencyPortal.tsx) for the embedded dashboard UI. Wrapped in a Collapsible component.
+
+\subsubsection{Uses/Interactions}
+
+Renders PowerBI report and visual iframes using URLs configured in web part properties (defaultUrl, links, carouselMode, visibleCount). Uses PDRoleBasedSelect with a single EVERYONE view that internally checks for IT or TrialSupervisor role before rendering.
+
+\subsubsection{Resources}
+
+PowerBI service (external). Web part configuration properties for report URLs. No SharePoint list dependencies.
+
+\subsubsection{Interface/Exports}
+
+Default export from UrgencyPortal.tsx as a standard SPFx web part.
+
+\subsection{Announcements Web Part}
+
+\subsubsection{Responsibilities}
+
+Displays role-filtered announcements to all authenticated users. Each announcement is tagged with a PDDepartment field that is matched against the user's effective role. IT administrators see all announcements regardless of department tag.
+
+\subsubsection{Constraints}
+
+Requires AnnouncementsApi and PNPWrapper. Fetches up to 12 announcements per load. Role filtering uses ENV\_CANVIEW to determine which department tags are visible to each role. Announcements with no matching department tag are hidden from non-IT users.
+
+\subsubsection{Composition}
+
+Composed of Announcements.tsx (web part entry), AnnouncementsApi (data access layer), and PDRoleBasedSelect for role-aware rendering. All nine roles share the PDIntranetView render function with filtering applied at the data level based on PDDepartment field and user role.
+
+\subsubsection{Uses/Interactions}
+
+Calls AnnouncementsApi.get(12) to fetch recent announcements from SharePoint. Filters results by PDDepartment field matching the user's allowed departments (derived from ENV\_CANVIEW). IT users bypass filtering and see all announcements. Renders as a collapsible list with title, summary, author, publish date, expiry date, and thumbnail.
+
+\subsubsection{Resources}
+
+SharePoint list: Announcements (accessed via AnnouncementsApi). PnP.js for data retrieval.
+
+\subsubsection{Interface/Exports}
+
+Exported as Announcements from Announcements.tsx. Standard SPFx web part.
+
+\subsection{Calendar / Upcoming Events Web Part}
+
+\subsubsection{Responsibilities}
+
+Displays upcoming events from multiple SharePoint sites and the user's Outlook/M365 calendar. Supports Add to Calendar functionality. Uses caching to optimize performance --- displays cached data first while fetching fresh data in the background.
+
+\subsubsection{Constraints}
+
+Site URLs for SharePoint calendar sources are configured in the web part. Initial load can be slow due to fetching from multiple sources (multiple SharePoint sites plus Outlook personal and group calendars). Max display height is 384px with scrolling.
+
+\subsubsection{Composition}
+
+Composed of UpcomingEvents.tsx (main component), EventsApi (data access), CalendarApi (Outlook calendar integration), and the Collapsible wrapper. Uses Utils.loadCachedThenFresh() for performance optimization.
+
+\subsubsection{Uses/Interactions}
+
+Fetches events from 3 SharePoint sites and Outlook calendars via EventsApi and CalendarApi. Renders a collapsible table with event date, time, title, location, and details link. If fetching fails shows "No Events" message.
+
+\subsubsection{Resources}
+
+SharePoint calendar lists across multiple sites. Microsoft Graph API for Outlook calendar access. PnP.js for SharePoint event retrieval.
+
+\subsubsection{Interface/Exports}
+
+Standard SPFx web part export from UpcomingEvents web part folder.
+
+\section{Detailed Lower Level Component Design}
+
+\subsection{ExpertWitnessApi}
+
+\subsubsection{Classification}
+
+Service class. API wrapper for the ExpertWitnesses SharePoint list.
+
+\subsubsection{Processing Narrative (PSPEC)}
+
+Retrieves expert witness records from the SharePoint list and maps them to a typed data model for consumption by the ExpertWitnessDirectory web part.
+
+\subsubsection{Interface Description}
+
+Accepts a PNPWrapper instance. Exposes a get() method returning a typed array of expert witness objects.
+
+\subsubsection{Processing Detail}
+
+\paragraph{Design Class Hierarchy}
+
+Standalone service class with no inheritance. Instantiated by ExpertWitnessDirectory.tsx.
+
+\paragraph{Restrictions/Limitations}
+
+Read-only. No write operations. Depends on SharePoint list schema matching expected column names.
+
+\paragraph{Performance Issues}
+
+List size may grow over time. No pagination implemented --- fetches all records on load.
+
+\paragraph{Design Constraints}
+
+Requires PNPWrapper initialized with the correct site URL.
+
+\paragraph{Processing Detail For Each Operation}
+
+get(): Queries the ExpertWitnesses SharePoint list via PnP.js. Maps raw list items to typed objects. Returns array or null on failure.
+
+\subsection{StaffDirectory.tsx}
+
+\subsubsection{Classification}
+
+React functional component. UI layer for the StaffDirectory SPFx web part.
+
+\subsubsection{Processing Narrative (PSPEC)}
+
+Fetches staff records from the StaffDirectory SharePoint list and renders a searchable directory with avatar initials, name, title, and contact details.
+
+\subsubsection{Interface Description}
+
+Props: IStaffDirectoryProps including context (WebPartContext) and listName. Uses PNPWrapper for data access.
+
+\subsubsection{Processing Detail}
+
+\paragraph{Design Class Hierarchy}
+
+Functional component with no class hierarchy.
+
+\paragraph{Restrictions/Limitations}
+
+Search is performed client-side. No server-side filtering. Performance degrades with very large staff lists.
+
+\paragraph{Performance Issues}
+
+All staff records are loaded on mount. Client-side search filters the loaded array.
+
+\paragraph{Design Constraints}
+
+Requires PNPWrapper and a populated StaffDirectory SharePoint list.
+
+\paragraph{Processing Detail For Each Operation}
+
+load(): Fetches all items from the StaffDirectory list. Sets component state with the results. search(): Filters the loaded staff array against the search input across all visible fields. render(): Displays staff cards with initials avatar, name, title, work phone, extension, and cell.
+
+\subsection{AttorneyAssignments.tsx}
+
+\subsubsection{Classification}
+
+React functional component. UI layer for the attorney case assignments view within the PortalAssignments web part.
+
+\subsubsection{Processing Narrative (PSPEC)}
+
+Displays a filterable table of case assignments for the logged-in attorney. Supports My Cases and All Assignments filter modes. Renders case number, client, court, next hearing date, status badge, and a details link.
+
+\subsubsection{Interface Description}
+
+Props: IAttorneyAssignmentsProps including assignments (IAssignment[]), visibleToGroups, and context. IAssignment type includes id, caseNumber, client, court, nextHearing, status, link, attorneyEmail, attorneyName, isMyCase.
+
+\subsubsection{Processing Detail}
+
+\paragraph{Design Class Hierarchy}
+
+Functional component with no class hierarchy.
+
+\paragraph{Restrictions/Limitations}
+
+Assignment data is passed as props --- component does not fetch data itself. Filtering is client-side only.
+
+\paragraph{Performance Issues}
+
+No pagination. All assignments rendered in a single table. Performance depends on the number of assignments passed as props.
+
+\paragraph{Design Constraints}
+
+Requires assignments array to be pre-fetched and passed from the parent web part. Depends on SharePoint list data for case records.
+
+\paragraph{Processing Detail For Each Operation}
+
+filter state: Holds the current filter selection ("my" or "all"). Defaults to "my". filteredAssignments: Computed via useMemo. If "all" returns all assignments. If "my" returns only cases where isMyCase is true. setFilter(): Updates filter state when the user changes the dropdown selection. render(): Displays a table with case number, client, court, next hearing, color-coded status badge, and details link. Shows "No assignments found" if empty.
+
+\subsection{UpcomingEvents.tsx}
+
+\subsubsection{Classification}
+
+React functional component. UI layer for the UpcomingEvents SPFx web part.
+
+\subsubsection{Processing Narrative (PSPEC)}
+
+Collects and displays upcoming events from multiple SharePoint sites and the user's Outlook calendar in a collapsible table format. Uses caching to optimize performance.
+
+\subsubsection{Interface Description}
+
+Props: IUpcomingEventsProps. Uses PNPWrapper, EventsApi, CalendarApi, and Utils.loadCachedThenFresh().
+
+\subsubsection{Processing Detail}
+
+\paragraph{Design Class Hierarchy}
+
+Functional component with no class hierarchy.
+
+\paragraph{Restrictions/Limitations}
+
+Site URLs for SharePoint calendar sources may be configured in web part properties. Max display height of 384px with vertical scroll.
+
+\paragraph{Performance Issues}
+
+Initial load can be slow due to fetching events from multiple sources: multiple SharePoint sites and Outlook personal and group calendars. Each API call adds latency. Subsequent loads are
+
+faster due to Utils.loadCachedThenFresh() which displays cached data first while fetching fresh data in the background.
+
+\paragraph{Design Constraints}
+
+Requires PNPWrapper and EventsApi utilities. Depends on Collapsible component for collapse/expand functionality. Microsoft Graph API permissions required for Outlook calendar access.
+
+\paragraph{Processing Detail For Each Operation}
+
+load(): Fetches events from SharePoint sites and Outlook calendars. Updates display on completion. Shows "No Events" message if fetching fails. useEffect(): Runs on component mount. Invokes Utils.loadCachedThenFresh() to display cached data immediately then refresh. render(): Displays a collapsible table with event date, time, title, location, and details link.
+
+\subsection{AssignmentFlow.tsx}
+
+\subsubsection{Classification}
+
+React functional component. Step-by-step assignment player for the PortalAssignments web part.
+
+\subsubsection{Processing Narrative (PSPEC)}
+
+Renders the sequential step flow for a single assignment. Handles step navigation, embed completion tracking (YouTube/MP4), quiz gating, and progress reporting via the Azure Function mutations API.
+
+\subsubsection{Interface Description}
+
+Props: svc (AssignmentsSpService), mutations (AssignmentsMutationsApi), assignment (UserAssignmentItem), onBack, onUpdated callbacks.
+
+\subsubsection{Processing Detail}
+
+\paragraph{Design Class Hierarchy}
+
+Functional component with no class hierarchy. Composes AssignmentFlowSidebar, AssignmentFlowQuizPane, and EmbedPlayer sub-components.
+
+\paragraph{Restrictions/Limitations}
+
+YouTube embeds using the nocookie domain do not reliably fire completion events via the iframe API. Self-hosted MP4 embed completion tracking has not been fully tested.
+
+\paragraph{Performance Issues}
+
+Each step navigation may trigger a SharePoint list update via the mutations API. Network latency affects responsiveness.
+
+\paragraph{Design Constraints}
+
+Requires Azure Function (PortalAssignmentsMutate) to be deployed for quiz submission verification. Falls back gracefully if the function is unavailable.
+
+\paragraph{Processing Detail For Each Operation}
+
+mergeAssignment(): Merges a mutation result patch into the existing UserAssignmentItem state. isVideoLikeEmbed(): Detects YouTube URLs and MP4 file extensions to determine if embed completion tracking applies. isMidnightUtcIso(): Detects date-only ISO strings stored as midnight UTC to prevent timezone-related date shifting. render(): Renders step content, sidebar progress, quiz pane (if applicable), and navigation controls.
+
+\subsection{CDDResourceGuides.tsx}
+
+\subsubsection{Classification}
+
+React functional component. Full implementation of the CDD Resource Guides web part including data fetching, search, and UI.
+
+\subsubsection{Processing Narrative (PSPEC)}
+
+Fetches a hierarchical folder and file structure from the SharePoint CDD document library. Renders categories, subcategories, and documents with search, expand/collapse, multi-select, and email sharing capabilities.
+
+\subsubsection{Interface Description}
+
+No external props beyond SharePoint context. All data is fetched internally via SharePoint REST API calls.
+
+\subsubsection{Processing Detail}
+
+\paragraph{Design Class Hierarchy}
+
+Functional component with no class hierarchy.
+
+\paragraph{Restrictions/Limitations}
+
+Uses direct SharePoint REST API calls rather than PnP.js. .url files must follow the standard Windows URL shortcut format. External links are only visible if the .url file is correctly formatted.
+
+\paragraph{Performance Issues}
+
+Full folder and file tree is loaded on mount. Performance depends on the number of files in the CDD document library.
+
+\paragraph{Design Constraints}
+
+Requires a SharePoint document library structured with top-level category folders and nested subcategory folders. Relies on SharePoint "Label" and "Tags" columns for display names and search metadata.
+
+\paragraph{Processing Detail For Each Operation}
+
+fetchFolders(): Retrieves top-level category folders from the SharePoint document library via REST API. fetchSubfolders(): Retrieves nested subcategory folders within each category. fetchDocuments(): Retrieves files and .url links within each folder. Parses .url files to extract external URLs. search(): Filters categories, subcategories, and documents against multi-word search terms. Matches against name, tags, and parent folder names. handleEmailShare(): Generates a mailto link containing selected document URLs for email sharing. render(): Renders hierarchical accordion UI with search bar, category/subcategory expand/collapse, document list, checkboxes, and action bar.
+
+\section{Database Design}
+
+The database design for the SPFx project uses SharePoint Lists as the primary storage for structured data. SharePoint enforces security by checking permissions assigned to the user at site, library, list, folder, or item level. Authentication is managed through OAuth via Azure Entra ID. The following SharePoint lists constitute the data layer: List Name Owner Web Part Purpose HotelingReservations Office Hoteling Stores desk reservation records including location, station, date, time slot, and user Assignments Portal Assignments Per-user assignment instances with status, progress, due date, and completion tracking AssignmentCatalog Portal Assignments / CMS Master catalog of assignment definitions including title, instructions, quiz settings AssignmentSteps Portal Assignments / CMS Ordered step definitions within each assignment including body, embed URLs, and quiz gates LOPProcedureChecklis t LOP Procedure Checklist Procedure template definitions for Legal Office Professionals ProcedureSteps LOP Procedure Checklist Individual step content within each procedure including PDFs and video embeds StaffDirectory Staff Directory Employee contact records including name, title, phone, extension, and cell SiteSettings CMS / Theme Injector Site-wide configuration including banner settings. IT access only.
+
+\section{User Interface}
+
+\subsection{Overview of User Interface}
+
+The user interface is a single SharePoint modern page that renders different content based on the logged-in user's Active Directory group membership. The page layout is consistent across all roles with role-specific web parts appearing or hiding dynamically. Key UI principles:
+
+\begin{itemize}[leftmargin=*]
+\item  Role awareness: every web part checks the user's role before rendering. Unauthorized users see either nothing or a restricted access message.
+\item  Personalization: the Welcome Message web part greets each user by name. Announcements and Events filter to the user's department.
+\item  Clean layout: web parts use consistent card and collapsible panel patterns to avoid overwhelming users with information.
+\item  Consistent navigation: the site header navigation bar renders role-appropriate tabs only. IT sees all tabs; Guest sees one.
+\item  Error feedback: system messages avoid technical jargon and use plain English. Errors display via SharePoint notification banners or inline component messages.
+\end{itemize}
+
+\subsection{Screen Frameworks or Images}
+
+The following screenshots illustrate the role-based UI differences across key user types. Each view is taken from the same SharePoint site URL with different Active Directory group membership.
+
+\begin{itemize}[leftmargin=*]
+\item  Everyone (Guest) view: single "Everyone" navigation tab. Guest Resources panel with handbooks and common forms. Assignments panel shows "Welcome, Guest: You must have some form of PDIntranet role" message.
+\end{itemize}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth]{figures/SDD_page_26.png}
+\caption{Original visual content from page 26 of the Software Design Document.}
+\end{figure}
+
+\begin{itemize}[leftmargin=*]
+\item  Attorney view: Everyone, PD-Intranet, Attorney navigation tabs. Attorney Resources panel with forms and handbooks. Assignments panel with active case assignments.
+\end{itemize}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth]{figures/SDD_page_27.png}
+\caption{Original visual content from page 27 of the Software Design Document.}
+\end{figure}
+
+\begin{itemize}[leftmargin=*]
+\item  LOP view: Everyone, PD-Intranet, Attorney, LOP navigation tabs. LOPS Legal Office Procedural System panel with 46 searchable procedures.
+\end{itemize}
+
+\begin{itemize}[leftmargin=*]
+\item  Trial Supervisor view: Everyone, PD-Intranet, Attorney, CDD, LOP, Trial Supervisor navigation tabs. Attorney Workload panel showing full case hierarchy. PowerBI Urgency
+\end{itemize}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth]{figures/SDD_page_28.png}
+\caption{Original visual content from page 28 of the Software Design Document.}
+\end{figure}
+
+Portal visible.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth]{figures/SDD_page_29.png}
+\caption{Original visual content from page 29 of the Software Design Document.}
+\end{figure}
+
+\begin{itemize}[leftmargin=*]
+\item  IT view: All navigation tabs visible including Edit control. IT Resources panel. All web parts visible including PowerBI Urgency Portal and full Assignments management.
+\end{itemize}
+
+Note: Full-page screenshots for all 9 role views are included in the project repository at docs/sharepoint-store/screenshots/.
+
+\subsection{User Interface Flow Model}
+
+The SPFx solution is hosted on a small number of SharePoint modern pages. From the user's perspective it exposes several distinct screens or view states. Navigation between views is driven by standard UI controls and deep links using query parameters.
+
+\subsection*{Main Screens / View States}
+
+1. Portal Page (Home): Contains all user-facing web parts. Default entry point for all users via the Public Defender intranet. Web parts render based on role.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth]{figures/SDD_page_30.png}
+\caption{Original visual content from page 30 of the Software Design Document.}
+\end{figure}
+
+2. CMS Dashboard (Admin/Content Owner View): Central management screen for all portal content types including Announcements, Forms, Events, Assignments, Assignment Catalog, Banners, and Submissions. Available only to IT administrators and authorized content owners. 3. CMS List Views: Within the CMS dashboard each content type has a filtered view displaying a table of items with View, Edit, Delete, and New actions. 4. CMS Item Editor (New/Edit): Form-like screen used to create or edit a single content item. Reached from CMS list views or via deep links from the Portal page. 5. Assignment Flow: Full-screen step player for completing a single assignment. Renders step content, sidebar progress tracker, embed player, and quiz pane.
+
+\subsection*{Navigation Flows}
+
+Portal $\rightarrow$ CMS Dashboard: Privileged users see a "Manage in CMS" button on certain web parts. Clicking navigates to the CMS page with an optional query parameter pre-selecting the content type (e.g., ?view=forms). CMS Dashboard $\rightarrow$ CMS List Views: Within the CMS users switch between tabs (Announcements, Forms, Events, Assignments, etc.). Each tab updates the central table and the URL query parameter. CMS List View $\rightarrow$ Item Editor: Clicking New opens the editor in new item mode. Clicking Edit loads the item's data. After saving the user returns to the list view with a confirmation message. Portal $\rightarrow$ Assignment Flow: Clicking Open on an assignment in the Assignments web part launches the AssignmentFlow component for that assignment. Return to Portal: The CMS and Assignment Flow provide navigation back to the main Portal page. Users can also use the site's built-in navigation or browser back button.
+
+\section{Requirements Validation and Verification}
+
+Requirement Component Module UI Element Testing Method Role-based navigation displays correct tabs per role PDRoleBasedSelect, roleViewPriority.ts Site header navigation Log in as each of the 9 roles and verify tab visibility matches the Access Control Specification Announcements filter by user role/department Announcements Web Part, AnnouncementsApi Announcements.tsx Post announcements tagged to specific departments and verify visibility per role Upcoming Events displays role-filtered events UpcomingEvents Web Part UpcomingEvents.tsx Create events in role-specific calendars and verify visibility Staff Directory is searchable by any authenticated user StaffDirectory Web Part StaffDirectory.tsx Search for staff members across multiple fields and verify results Expert Witness Directory is searchable by all roles ExpertWitnessDirector y Web Part ExpertWitnessApi Search and filter expert witnesses and verify 247 records load Office Hoteling is visible only to authorized roles OfficeHoteling Web Part OfficeHotelingInner.tsx Verify Hoteling web part is hidden for TrialSupervisor, HR, ComplianceOfficer, Guest Desk reservations persist and prevent conflicts OfficeHoteling Web Part HotelingReservations list Book a slot and verify it shows as Booked for other users on the same slot Attorney Workload restricted to TrialSupervisor, HR, IT AttorneyWorkload Web Part AttorneyWorkload.tsx Verify non-authorized roles see Not privileged enough message LOP Procedure Checklist visible to all authenticated users LOP Procedure Checklist Web Part ProcedureChecklist.tsx Log in as each role and verify checklist loads and is searchable CDD Resource Guides visible to CDD and IT CDD Resource Guides CDDResourceGuides.t sx Verify CDD documents load and search works. Verify other roles cannot access.
+
+Urgency Portal (PowerBI) restricted to IT and TrialSupervisor UrgencyPortal Web Part UrgencyPortal.tsx Verify dashboard renders for IT and TrialSupervisor. Verify hidden for all other roles. Assignments displayed and completable by assigned users PortalAssignments Web Part AssignmentFlow.tsx Assign a training to a test user and verify step completion and quiz submission CMS accessible only to IT administrators CMS Web Part cmsContainer.tsx Verify CMS management interface is not accessible to non-IT roles Permission changes propagate automatically via AD sync Azure Entra ID, PDRoleBasedSelect All web parts Add test user to AD group and verify SharePoint role updates without manual intervention
+
+\section{Glossary}
+
+Audience Targeting: SharePoint feature that shows content only to selected groups of users based on Azure Entra ID group membership. CMS (Content Management System): The set of SharePoint lists, pages, and SPFx components used by administrators to manage announcements, forms, events, assignments, and other portal content. Entra ID (Azure Active Directory): Microsoft's cloud identity and access management service used for authentication and role assignments. PDRoleBasedSelect: Custom SPFx React component that reads the user's Azure Entra ID group membership at runtime and selects the appropriate view to render. Core mechanism for role-based UI delivery. PnP.js (Patterns and Practices): Open-source JavaScript library providing a fluent API for SharePoint REST operations. Role-Based Content: Content that is shown or hidden depending on the user's Active Directory group membership. SPFx (SharePoint Framework): A client-side development model for building custom web parts and extensions in SharePoint Online using React and TypeScript. Web Part: A reusable UI component placed on SharePoint pages to display data or provide functionality. Azure Functions: Microsoft's serverless compute platform used for backend operations including quiz submission verification and LOP PDF import processing. PNPWrapper: Internal project utility class that initializes and manages PnP.js connections to SharePoint sites.
+
+\section{References}
+
+Brad Appleton <brad@bradapp.net> http://www.bradapp.net https://www.cs.purdue.edu/homes/cs307/ExampleDocs/DesignTemplate\_Fall08.doc Microsoft SharePoint Framework Documentation: https://learn.microsoft.com/en-us/sharepoint/dev/spfx/ PnP.js Documentation: https://pnp.github.io/pnpjs/ Microsoft Graph API Reference: https://learn.microsoft.com/en-us/graph/api/overview Azure Functions Documentation: https://learn.microsoft.com/en-us/azure/azure-functions/ Project Repository: https://github.com/steventhestudent/sbpubdef SRS Document
+
+\end{document}

@@ -1,0 +1,435 @@
+\documentclass[12pt]{article}
+
+% LaTeX-ready preamble added for Overleaf/pdfLaTeX compatibility.
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{mathptmx}
+\usepackage[margin=1in]{geometry}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{enumitem}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{xcolor}
+\usepackage[hidelinks]{hyperref}
+\usepackage{caption}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{6pt}
+\emergencystretch=2em
+
+% If a referenced figure is missing, compile anyway and show a placeholder.
+\let\OldIncludegraphics\includegraphics
+\renewcommand{\includegraphics}[2][]{%
+  \IfFileExists{#2}{\OldIncludegraphics[#1]{#2}}{%
+    \fbox{\parbox{0.85\linewidth}{\centering Missing figure: \texttt{\detokenize{#2}}}}%
+  }%
+}
+
+\begin{document}
+% Auto-converted from SoftwareRequirementsSpecification'26 (1).pdf
+\begin{titlepage}
+\centering
+\vspace*{1in}
+{\LARGE\bfseries Software Requirements Specification\\[0.25in]}
+{\large for Role-Based Internal Platform for Targeted Content Delivery\\[0.4in]}
+Version 1.5\\
+Prepared by Alondra Perez
+Daniel Solares
+Jake Osorio\\
+Justin Han
+Mario Nunez\\
+California State University, Los Angeles ECST c/o 2026\\
+Sponsored By: Santa Barbara Public Defender's Office\\
+May 8, 2026\\
+\vfill
+\end{titlepage}
+
+\tableofcontents
+\clearpage
+\section*{Revision History}
+\addcontentsline{toc}{section}{Revision History}
+
+Version Date Snapshot Summary of Changes 1.0 (05/1/2026 - 6/1/2026) Snapshot 1 Created initial SRS structure; added Introduction, Purpose, Audience, Scope; added early system analysis and role definitions; added initial requirements outline. 1.1 (6/2/2026 -- 9/4/2026) Snapshot 2 Added role-based access requirements; added Announcements, Events, Calendar; expanded interface requirements (SharePoint, Entra ID, Graph API); added constraints and non-functional requirements. 1.2 (9/5/2026 -- 1/1/2027) Snapshot 3 Added Staff Directory, Expert Witness Directory, Office Hoteling, Workload Tracker; expanded database requirements; added UI flow models and analysis models. 1.5 (1/2/2027 -- 5/1/2027) Snapshot 4 Updated SRS to reflect the final delivered system; finalized all functional requirements; added CDD Resource Guides, LOP Checklist, Assignments, Urgency Portal; resolved all TBD items.
+
+\section{Introduction}
+
+This Software Requirements Specification (SRS) document specifies the software requirements for the role-based internal platform for the Santa Barbara Public Defender's Office. The platform is built with SharePoint Framework (SPFx) and is designed to display content targeted to the user's Active Directory role. This document has been updated to reflect the final delivered system as of May 2026.
+
+\subsection{Purpose}
+
+The purpose of this document is to define the software requirements for the role-based internal platform capable of targeted content delivery for the Santa Barbara Public Defender's Office. This SRS provides an in-depth explanation of the platform's purpose and its functionalities as delivered in the final production-ready version. This SRS document covers the final delivered version of the system and reflects all features implemented across the Fall 2025 and Spring 2026 semesters. It supersedes any planning-phase requirements that were deferred, descoped, or resolved during development.
+
+\subsection{Intended Audience and Reading Suggestions}
+
+This document is intended for project managers, developers, the university faculty, and any additional parties involved with the software's requirements process. This includes all members of the Santa Barbara Public Defender's Office team, California State University, Los Angeles (CSULA) students, advisors, faculty, and staff, and Santa Barbara County IT personnel responsible for deploying and maintaining the system. Reading suggestions by role:
+
+\begin{itemize}[leftmargin=*]
+\item  Developers and testers should pay special attention to Sections 3 and 4.
+\item  Project managers and clients may prioritize Sections 1, 2, and 4.1.
+\item  County IT staff responsible for deployment should focus on Section 4.4 and Appendix C.
+\item  Documentation teams should use Sections 1.3 and 4 to build user-facing materials.
+\end{itemize}
+
+\subsection{Product Scope}
+
+The product is a web-based intranet platform designed for internal use by the Santa Barbara County Public Defender's Office. The platform allows authenticated users to view role-appropriate resources and documents, access necessary forms, search for staff and expert witnesses, manage office desk reservations, track case assignments, complete training and compliance assignments, and receive role-filtered announcements and events. The platform is implemented using SharePoint Framework (SPFx) with React and TypeScript, deployed to SharePoint Online under the county's Microsoft 365 tenant. Role-based access is managed automatically through Azure Active Directory (Entra ID) security group membership. No manual SharePoint permission administration is required when staff join, change roles, or leave the organization. The platform delivers nine distinct user experiences from a single SharePoint site and codebase, organized around the following role hierarchy from highest to lowest privilege: IT, Compliance
+
+Officer, HR, Trial Supervisor, Attorney, CDD (Capital Defense Division), LOP (Legal Office Professionals), PD-Intranet (general authenticated staff), and Everyone (Guest/unauthenticated).
+
+\subsection{Definitions, Acronyms, and Abbreviations}
+
+\begin{itemize}[leftmargin=*]
+\item  Microsoft Entra ID: Microsoft's cloud identity and access management service (formerly Azure Active Directory). Manages authentication and role group assignments.
+\item  SPFx: SharePoint Framework. The client-side development model used to build custom web parts and extensions in SharePoint Online.
+\item  SRS: Software Requirements Specification.
+\item  SDD: Software Design Document.
+\item  UI: User Interface.
+\item  CDD: Capital Defense Division. A specialized unit within the Public Defender's Office handling capital cases.
+\item  LOP: Legal Office Professionals. Staff responsible for office procedures, case opening workflows, and administrative legal tasks.
+\item  PnP.js: Patterns and Practices JavaScript library. Provides a fluent API for SharePoint REST operations.
+\item  Azure Functions: Microsoft's serverless compute platform. Used for quiz submission verification and LOP PDF import processing.
+\item  PDRoleBasedSelect: Custom SPFx React component that reads the user's Entra ID group membership at runtime and renders the appropriate role-based view.
+\item  .sppkg: SharePoint package file. The compiled deployment artifact uploaded to the SharePoint App Catalog.
+\end{itemize}
+
+\subsection{References}
+
+MyNotes - Meetings. (2025). Cysun.org. https://mynotes.cysun.org/notes/view/538 Overview of the SharePoint Framework. Microsoft Learn. https://learn.microsoft.com/en-us/sharepoint/dev/spfx/sharepoint-framework-overview Target content to a specific audience on a SharePoint site. Microsoft Support. https://support.microsoft.com/en-us/office/target-content-to-a-specific-audience-on-a-sharepoint- site-68113d1b-be99-4d4c-a61c-73b087f48a81 PnP.js Documentation. https://pnp.github.io/pnpjs/ Microsoft Graph API Reference. https://learn.microsoft.com/en-us/graph/api/overview Azure Functions Documentation. https://learn.microsoft.com/en-us/azure/azure-functions/ Project Repository. https://github.com/steventhestudent/sbpubdef
+
+\section{Overall Description}
+
+\subsection{System Analysis}
+
+Prior to this project the Santa Barbara County Public Defender's Office relied on a legacy SharePoint site (PD Internal) that provided a flat, role-unaware experience. All staff saw identical content regardless of their role or department. Resources were scattered across email, shared drives, physical binders, and outdated intranet pages. IT staff managed SharePoint permissions manually, creating delays when employees changed roles or left the organization. The PD-Intranet platform replaces this system with a unified hub that delivers personalized, role-filtered content automatically through Azure Active Directory synchronization. The system eliminates manual permission management entirely and provides each of nine distinct staff roles with a tailored intranet experience from a single SharePoint site.
+
+\subsection{Product Perspective}
+
+The PD-Intranet is a new system that replaces the existing legacy SharePoint intranet. It operates entirely within the county's Microsoft 365 ecosystem, leveraging SharePoint Online as the hosting platform, Azure Active Directory (Entra ID) for identity and access management, Microsoft Graph API for calendar and organizational data, PowerBI for embedded analytics, and Azure Functions for backend processing operations. The system is not a standalone application. It is a collection of SPFx web parts deployed to a SharePoint Communication Site. All data is stored in SharePoint lists. All authentication is handled by Microsoft 365 and Entra ID. No external hosting infrastructure is required.
+
+\subsection{Product Functions}
+
+The platform delivers the following primary functions:
+
+\begin{itemize}[leftmargin=*]
+\item  Role-based navigation: the site header dynamically renders navigation tabs based on the user's Active Directory group membership. IT administrators see all tabs; Guest users see one.
+\item  Personalized content delivery: web parts render role-appropriate content. Unauthorized web parts hide entirely or display a restricted access message.
+\item  Announcements: role-filtered news and updates tagged by department. IT users see all announcements; other roles see only their department's content.
+\item  Upcoming Events and Calendar: displays events from multiple SharePoint sites and the user's Outlook calendar with role-filtered results.
+\item  Staff Directory: searchable employee contact database accessible to all authenticated users.
+\item  Expert Witness Directory: searchable database of expert witnesses with availability status and specialty filtering.
+\item  Office Hoteling: real-time desk reservation system with weekly availability calendar, email confirmation, and conflict detection. Visible to IT, PD-Intranet, Attorney, CDD, and LOP roles.
+\end{itemize}
+
+\begin{itemize}[leftmargin=*]
+\item  Attorney Workload Tracker: hierarchical case distribution visibility (Location $\rightarrow$ Case Type $\rightarrow$ Attorney) for Trial Supervisor, HR, and IT roles.
+\item  LOP Procedure Checklist: searchable procedure library for Legal Office Professionals with step-by-step workflows, PDF attachments, YouTube video embeds, and IT-managed PDF import.
+\item  CDD Resource Guides: hierarchical document library for Capital Defense Division staff with search, multi-select, and email sharing.
+\item  Urgency Portal (PowerBI): embedded analytics dashboard restricted to IT and Trial Supervisor roles.
+\item  Assignments: training, acknowledgement, and task management system with step-by-step completion tracking, video embeds, quiz gates, and Azure Function-backed verification.
+\item  Content Management System (CMS): IT-only interface for managing announcements, events, forms, assignments, and site banners.
+\item  Zero manual permission management: all access control is driven by Active Directory group membership with automatic synchronization to SharePoint.
+\end{itemize}
+
+\subsection{User Classes and Characteristics}
+
+The platform supports nine user classes defined by Azure Active Directory security group membership. Role priority is applied from highest to lowest when a user belongs to multiple groups. Role Display Name Access Level IT IT Full site access, all navigation tabs, site edit and admin controls, CMS management, all web parts COMPLIANCEOFFIC ER Compliance Officer Content edit permissions, compliance-specific resources, extended navigation HR HR HR-specific content, Attorney Workload visibility, shared resources TRIALSUPERVISOR Trial Supervisor Supervisory tools, Attorney Workload full view, PowerBI Urgency Portal, all attorney content ATTORNEY Attorney Case management tools, Attorney Workload (own cases), Office Hoteling, Attorney Resources CDD CDD Capital Defense Division resources, CDD Resource Guides, Office Hoteling LOP LOP Legal Office Professionals procedures, LOP Procedure Checklist, Office Hoteling
+
+PDINTRANET PD-Intranet General authenticated staff access, base resources, Office Hoteling EVERYONE Guest Public-facing content only, no role-specific features, no Office Hoteling or Assignments
+
+\subsection{Operating Environment}
+
+The platform operates within the following environment:
+
+\begin{itemize}[leftmargin=*]
+\item  Hosting: SharePoint Online (Microsoft 365 cloud)
+\item  Authentication: Azure Active Directory / Entra ID with Multi-Factor Authentication
+\item  Browsers: Microsoft Edge, Google Chrome, Safari, Firefox (modern versions)
+\item  Devices: county-issued desktop and laptop computers; mobile-responsive design supports tablet and smartphone access
+\item  Network: county secure network or VPN for remote access
+\item  Microsoft 365 License: Business Premium required for feature-complete Entra ID with role group support for Azure Functions
+\end{itemize}
+
+\subsection{Design and Implementation Constraints}
+
+\begin{itemize}[leftmargin=*]
+\item  The solution must be deployed within the county's existing Microsoft 365 SharePoint Online tenant
+\item  All custom code must be implemented as SPFx web parts compiled to a .sppkg deployment package
+\item  Authentication is managed exclusively through Azure Entra ID --- no custom authentication system
+\item  All data is stored in SharePoint lists --- no external databases
+\item  Environment-specific configuration (tenant IDs, group IDs, API endpoints) must be managed through .env configuration files, not hardcoded
+\item  Azure Functions require Microsoft 365 Business Premium licensing for EasyAuth and role group support
+\item  The development tenant (csproject25) differs from the production tenant --- separate environment configuration files are required
+\end{itemize}
+
+\subsection{User Documentation}
+
+The following documentation is provided as part of the project deliverables:
+
+\begin{itemize}[leftmargin=*]
+\item  Access Control Specification: documents all nine roles, their navigation visibility, web part visibility, and SharePoint list permissions
+\item  Transfer of Work Guide: step-by-step instructions for county IT to deploy the solution to the production Microsoft 365 tenant, recreate Entra ID security groups, configure Azure Functions, and import SharePoint list data
+\end{itemize}
+
+\begin{itemize}[leftmargin=*]
+\item  Environment Configuration Guide: documents all .env configuration values required for production deployment
+\item  Role-Based Layout Screenshots: screenshots of all nine role views for reference and verification
+\item  Migration Scripts README: documents the Python migration scripts for exporting and importing SharePoint content between tenants
+\end{itemize}
+
+\subsection{Assumptions and Dependencies}
+
+\begin{itemize}[leftmargin=*]
+\item  Santa Barbara County IT will manage Active Directory security groups for onboarding, role changes, and offboarding
+\item  The county's Microsoft 365 tenant has SharePoint Online enabled with App Catalog access for IT administrators
+\item  Microsoft 365 Business Premium licensing is available for Azure Functions EasyAuth support
+\item  County IT has access to Azure portal for App Registration and Azure Functions deployment
+\item  Users will access the platform via modern web browsers on county-issued devices
+\end{itemize}
+
+\subsection{Apportioning of Requirements}
+
+The following features were identified during planning but deferred or descoped due to timeline and scope constraints. These are documented as future enhancement opportunities:
+
+\begin{itemize}[leftmargin=*]
+\item  30-day new hire onboarding dashboard with automatic role transition: identified in Fall 2025 planning, not implemented in the delivered system. The Assignments web part partially addresses training needs for new hires.
+\item  Power Automate workflows for automated content expiration and notifications: evaluated but not implemented. Content management is handled manually through the CMS.
+\item  Department-specific portal pages beyond the current role-based views: identified as a future enhancement.
+\item  Mobile native application: the web platform is mobile-responsive but a dedicated native app was deferred.
+\item  AI-powered search and content recommendations: identified as a long-term enhancement.
+\end{itemize}
+
+\section{External Interface Requirements}
+
+\subsection{User Interfaces}
+
+The primary user interface is a SharePoint modern communication site rendered in the user's web browser. The site uses a consistent layout across all role views with a header navigation bar, a main content area containing SPFx web parts, and a right sidebar for quick-access panels (Office Information, Staff Directory, Assignments, Expert Witness Directory). Web parts use consistent card and collapsible panel design patterns built with React and Tailwind CSS utility classes via the Fluent UI design system. The interface is responsive and adapts to tablet and mobile viewport sizes. The CMS provides an administrative interface for IT administrators accessible from the same SharePoint page via role-gated navigation links.
+
+\subsection{Hardware Interfaces}
+
+The platform has no direct hardware interface requirements. It operates through standard web browser environments on county-issued devices. The platform accesses the device's network interface through the browser for all SharePoint and Microsoft Graph API communications.
+
+\subsection{Software Interfaces}
+
+\subsubsection{SharePoint Online}
+
+The platform is hosted on SharePoint Online as a Communication Site. SPFx web parts are deployed via the SharePoint App Catalog. SharePoint lists serve as the primary data store. The PnP.js library provides the primary interface for SharePoint REST API operations.
+
+\subsubsection{Azure Active Directory / Entra ID}
+
+All authentication and authorization is handled through Azure Entra ID. The PDRoleBasedSelect component reads the user's group membership from Entra ID at runtime to determine which role view to render. Security group membership in Entra ID drives all permission decisions.
+
+\subsubsection{Microsoft Graph API}
+
+The Microsoft Graph API is used for Outlook calendar integration (Upcoming Events web part), organizational data access, and Azure Function authentication via EasyAuth. The MSGraphClientFactory SPFx service provides authenticated Graph API access within web parts.
+
+\subsubsection{Azure Functions}
+
+Azure Functions provide the backend compute layer for two features: PortalAssignmentsMutate (quiz submission verification, assignment progress updates, and calendar event creation) and LopProcedureChecklistImport (PDF-to-procedure-steps conversion pipeline). Functions are authenticated via Azure AD EasyAuth.
+
+\subsubsection{PowerBI}
+
+The Urgency Portal web part embeds PowerBI reports and visuals via configurable iframe URLs. PowerBI licensing in the county's Microsoft 365 tenant is required for dashboard access.
+
+\subsection{Communications Interfaces}
+
+All client-server communication uses HTTPS. SharePoint REST API calls use OAuth tokens issued by Entra ID. Microsoft Graph API calls use delegated permissions with MFA-verified user tokens. Azure Function calls use AadHttpClient with EasyAuth token validation. No custom communication protocols are used.
+
+\section{Requirements Specification}
+
+\subsection{Functional Requirements}
+
+\subsection*{FR-RB: Role-Based Access Control}
+
+FR-RB1: The system shall support nine user roles defined by Azure Active Directory security group membership: IT, Compliance Officer, HR, Trial Supervisor, Attorney, CDD, LOP, PD-Intranet, and Everyone (Guest). FR-RB2: The system shall apply role priority in the following order when a user belongs to multiple groups (highest to lowest): IT, Compliance Officer, HR, Trial Supervisor, Attorney, CDD, LOP, PD-Intranet, Everyone. FR-RB3: The site navigation header shall display only the tabs appropriate to the user's role. IT administrators shall see all tabs. Guest users shall see only the Everyone tab. FR-RB4: Permission changes shall take effect automatically when a user's Active Directory group membership changes. No manual SharePoint administrator action shall be required. FR-RB5: Web parts shall check the user's role at runtime via PDRoleBasedSelect and render only authorized content. Unauthorized web parts shall render empty or display a restricted access message.
+
+\subsection*{FR-AN: Announcements}
+
+FR-AN1: The Announcements web part shall display role-filtered announcements from a SharePoint list. Each announcement shall be tagged with a PDDepartment field matched against the user's role. FR-AN2: IT administrators shall see all announcements regardless of department tag. FR-AN3: The web part shall display up to 12 recent announcements per load including title, summary, author, publish date, and expiry date.
+
+\subsection*{FR-EV: Events and Calendar}
+
+FR-EV1: The Upcoming Events web part shall display events from multiple SharePoint calendar sources and the user's Outlook calendar. FR-EV2: Events shall be displayed in a collapsible table with date, time, title, location, and a details link. FR-EV3: The web part shall use caching to display previously loaded events immediately while fetching updated data in the background.
+
+\subsection*{FR-SD: Staff Directory}
+
+FR-SD1: The Staff Directory web part shall display employee contact records including name, title, phone, extension, and cell number. FR-SD2: The web part shall support client-side search filtering across all visible fields. FR-SD3: The Staff Directory shall be visible to all authenticated user roles.
+
+\subsection*{FR-EW: Expert Witness Directory}
+
+FR-EW1: The Expert Witness Directory web part shall display a searchable database of expert witnesses. FR-EW2: Each record shall display name, specialty, availability status, contact information, and field of expertise. FR-EW3: The directory shall be visible to all authenticated user roles.
+
+\subsection*{FR-OH: Office Hoteling}
+
+FR-OH1: The Office Hoteling web part shall allow authorized users to reserve office desks for Morning (8am-12pm) or Afternoon (12pm-5pm) time slots. FR-OH2: Users shall be able to select a location (North County, South County, Juvenile, Lompoc) and a station before viewing availability. FR-OH3: The weekly availability calendar shall display Available, Booked, and Past states with color coding. FR-OH4: Reservations shall be stored in the HotelingReservations SharePoint list. FR-OH5: Email confirmation shall be sent upon successful booking. FR-OH6: Delete shall be disabled within 24 hours of the reservation time. FR-OH7: The web part shall be visible only to IT, PD-Intranet, Attorney, CDD, and LOP roles.
+
+\subsection*{FR-AW: Attorney Workload Tracker}
+
+FR-AW1: The Attorney Workload Tracker shall display hierarchical case distribution data organized by Location, Case Type, and Attorney. FR-AW2: The full workload view shall be restricted to Trial Supervisor, HR, and IT roles. FR-AW3: All other roles shall see a restricted access message. FR-AW4: The interface shall support search and filter functionality across the case hierarchy.
+
+\subsection*{FR-LP: LOP Procedure Checklist}
+
+FR-LP1: The LOP Procedure Checklist shall provide a searchable library of office procedures organized by category. FR-LP2: Each procedure shall contain ordered steps with support for rich text content, PDF attachments, and YouTube video embeds. FR-LP3: IT administrators shall have edit access. All authenticated users shall be able to view procedures. FR-LP4: IT administrators shall be able to import PDFs as structured procedure steps via the LopProcedureChecklistImport Azure Function. FR-LP5: Procedures shall be stored in the LOPProcedureChecklist and ProcedureSteps SharePoint lists.
+
+\subsection*{FR-CD: CDD Resource Guides}
+
+FR-CD1: The CDD Resource Guides web part shall display a hierarchical document library organized by category and subcategory.
+
+FR-CD2: The web part shall support multi-word search across document names, metadata tags, and folder names. FR-CD3: Users shall be able to select multiple documents and share them via a generated mailto link. FR-CD4: The web part shall support both SharePoint files and external links stored as .url files. FR-CD5: The web part shall be visible to CDD and IT roles.
+
+\subsection*{FR-UP: Urgency Portal}
+
+FR-UP1: The Urgency Portal web part shall embed a configurable PowerBI dashboard within the SharePoint page. FR-UP2: The web part shall support configurable report URL, visual URL, carousel mode, and visible count properties. FR-UP3: Access shall be restricted to IT and Trial Supervisor roles only.
+
+\subsection*{FR-AS: Assignments}
+
+FR-AS1: The Assignments web part shall support three assignment types: Training, Acknowledgement, and Task. FR-AS2: Training assignments shall support sequential steps with rich text content, video embed completion tracking, and quiz gates. FR-AS3: Quiz answers shall be submitted to the PortalAssignmentsMutate Azure Function for server-side verification. FR-AS4: Assignment progress including current step, percent complete, and completion status shall be stored in the Assignments SharePoint list. FR-AS5: Administrators shall manage the assignment catalog and individual user assignments through the CMS web part. FR-AS6: The Assignments web part shall display a My Assignments view and an Open Assignments Page link for all authenticated users.
+
+\subsection*{FR-CM: Content Management System}
+
+FR-CM1: The CMS web part shall provide IT administrators with a centralized management interface for announcements, events, forms, assignments, assignment catalog, banners, and submissions. FR-CM2: The CMS shall support an Audience Picker for targeting content to specific roles. FR-CM3: CMS access shall be restricted to IT administrators and authorized content owners.
+
+\subsection{External Interface Requirements}
+
+See Section 3 for detailed external interface specifications. Key interface requirements:
+
+\begin{itemize}[leftmargin=*]
+\item  All API communications shall use HTTPS with OAuth tokens issued by Azure Entra ID
+\item  SharePoint list operations shall use PnP.js REST API wrappers
+\item  Microsoft Graph API access shall use delegated permissions with MFA-verified tokens
+\end{itemize}
+
+\begin{itemize}[leftmargin=*]
+\item  Azure Function calls shall use AadHttpClient with EasyAuth token validation
+\item  PowerBI embeds shall use configurable iframe URLs provided as web part properties
+\end{itemize}
+
+\subsection{Logical Database Requirements}
+
+All data is stored in SharePoint lists within the PD-Intranet site collection. The following lists constitute the data layer: List Name Web Part Key Columns HotelingReservations Office Hoteling Location, Station, Date, TimeSlot, UserEmail, Status Assignments Portal Assignments Title, AssignmentCatalogId, EmployeeEmail, Status, CurrentStepOrder, PercentComplete, DueDate, CompletedOn AssignmentCatalog Portal Assignments / CMS Title, AssignmentKey, Summary, Instructions, QuizPassingScore, EstimatedMinutes AssignmentSteps Portal Assignments / CMS AssignmentCatalogId, StepOrder, StepTitle, BodyHtml, EmbedUrls, RequireEmbedCompletion LOPProcedureChecklist LOP Procedure Checklist Title, Category, Description, Active ProcedureSteps LOP Procedure Checklist ProcedureId, StepOrder, StepTitle, BodyHtml, EmbedUrl, AttachmentUrl StaffDirectory Staff Directory Title, JobTitle, WorkPhone, Extension, CellPhone, Department SiteSettings CMS / Theme Injector BannerText, BannerColor, BannerEnabled, BannerDismissible
+
+\subsection{Design Constraints}
+
+\begin{itemize}[leftmargin=*]
+\item  The solution must be packaged as a SharePoint .sppkg file and deployed via the SharePoint App Catalog
+\item  Role detection must use Azure Entra ID group membership --- no custom user database or separate role management system
+\item  Environment-specific values (tenant IDs, group IDs, Azure Function URLs) must be managed in .env configuration files
+\item  The production environment requires Microsoft 365 Business Premium licensing for Azure Functions EasyAuth
+\item  All SharePoint list permissions must be configured per the Access Control Specification document
+\item  The solution must be buildable using pnpm and the SPFx Gulp build pipeline on Node.js
+\end{itemize}
+
+\section{Other Nonfunctional Requirements}
+
+\subsection{Performance Requirements}
+
+\begin{itemize}[leftmargin=*]
+\item  User Load: the system shall support concurrent access by all Public Defender's Office staff without degradation, leveraging SharePoint Online's infrastructure.
+\item  Page Load: 95\% of page loads shall complete within 2.5-3 seconds under normal network conditions.
+\item  Role-Based Dashboard: role-based content filtering shall resolve within 2.5-3 seconds for 95\% of requests.
+\item  Caching: the Upcoming Events and other data-heavy web parts shall use cached data display to improve perceived load time.
+\item  SharePoint List Operations: standard list reads and writes shall complete within 2 seconds under normal conditions.
+\end{itemize}
+
+\subsection{Safety Requirements}
+
+\begin{itemize}[leftmargin=*]
+\item  5.2.1: The system shall ensure that content tags, labels, and metadata remain intact when content is uploaded, edited, or updated.
+\item  5.2.2: SharePoint's native recycle bin ensures accidentally deleted content can be restored within 93 days per Microsoft policy.
+\item  5.2.3: Role-based visibility rules shall prevent users from seeing content designated for other roles under all circumstances.
+\item  5.2.4: The system shall not break or cause data loss when configuration changes are applied or web part updates are deployed.
+\end{itemize}
+
+\subsection{Security Requirements}
+
+\begin{itemize}[leftmargin=*]
+\item  5.3.1: All users must authenticate via Microsoft 365 with Multi-Factor Authentication enforced through Entra ID.
+\item  5.3.2: All data shall be protected by Microsoft 365 security protocols and stored exclusively within the county's SharePoint Online environment.
+\item  5.3.3: Role-based content filtering shall ensure users can only access content designated for their Active Directory group.
+\item  5.3.4: Content creation and editing shall be restricted by role. IT has full site edit access. Compliance Officer has content edit access. All other roles are view-only.
+\item  5.3.5: The system shall comply with Santa Barbara County policies and Microsoft security standards.
+\item  5.3.6: Azure Function endpoints shall be secured via EasyAuth requiring valid Entra ID tokens for all requests.
+\end{itemize}
+
+\subsection{Software Quality Attributes}
+
+\begin{itemize}[leftmargin=*]
+\item  Usability: users shall be able to navigate the intranet and locate role-appropriate content within 5-10 minutes without training.
+\end{itemize}
+
+\begin{itemize}[leftmargin=*]
+\item  Reliability: the platform inherits SharePoint Online's 99.9\% uptime SLA from Microsoft.
+\item  Maintainability: all web parts are built as independent SPFx modules that can be updated without affecting other components. The CMS enables content management without developer involvement.
+\item  Scalability: new roles can be added by updating Active Directory groups and environment configuration files without code changes. New web parts can be added independently.
+\item  Portability: the platform is accessible across all modern browsers (Edge, Chrome, Safari, Firefox) and is mobile-responsive.
+\item  Extensibility: the SPFx architecture and SharePoint list data model are designed to accommodate future features including additional web parts, role-specific pages, and expanded PowerBI dashboards.
+\end{itemize}
+
+\subsection{Business Rules}
+
+\begin{itemize}[leftmargin=*]
+\item  5.5.1: Users shall only see pages, documents, and content designated for their Active Directory role.
+\item  5.5.2: Content management (create, edit, delete) is restricted to IT and Compliance Officer roles through SharePoint list permissions and CMS access controls.
+\item  5.5.3: All permission changes are made exclusively through Active Directory group management by county IT staff. No SharePoint-level manual permission changes are required or expected.
+\item  5.5.4: Assignment quiz results are verified server-side through Azure Functions to prevent client-side manipulation.
+\item  5.5.5: Office desk reservations cannot be deleted within 24 hours of the reservation time to prevent last-minute cancellations.
+\end{itemize}
+
+\section{Legal and Ethical Considerations}
+
+The platform operates within the Santa Barbara Public Defender's Office's Microsoft 365 SharePoint environment, ensuring that all information is stored securely and remains confidential. User access is managed through Microsoft Entra ID (Azure Active Directory), which verifies each user's identity, assigns the correct permissions, and enforces Multi-Factor Authentication for added security. No personal or sensitive data is shared outside of the county's Microsoft 365 environment. All access is strictly role-based to protect privacy and maintain confidentiality. The system does not collect or store any data outside of SharePoint Online and Azure services provided by Microsoft under the county's enterprise agreement. The platform handles attorney-client privileged information by design --- role-based access controls ensure that only authorized personnel can access case-related tools and documents. The system is designed to uphold strong legal and ethical standards by safeguarding user information, ensuring data integrity, and providing fair and secure access for all authorized staff.
+
+\section{Appendix A: Glossary}
+
+Audience Targeting: SharePoint feature that shows content only to selected groups of users based on Azure Entra ID group membership. Azure Functions: Microsoft's serverless compute platform used for backend operations including quiz submission verification (PortalAssignmentsMutate) and LOP PDF import processing (LopProcedureChecklistImport). CDD (Capital Defense Division): A specialized unit within the Public Defender's Office handling capital cases. CMS (Content Management System): The set of SharePoint lists, pages, and SPFx components used by IT administrators to manage announcements, forms, events, assignments, and site banners. Entra ID (Azure Active Directory): Microsoft's cloud identity and access management service used for authentication and role group assignments. LOP (Legal Office Professionals): Staff responsible for office procedures, case opening workflows, and administrative legal tasks. PDRoleBasedSelect: Custom SPFx React component that reads the user's Azure Entra ID group membership at runtime and renders the appropriate role-based view. PnP.js (Patterns and Practices): Open-source JavaScript library providing a fluent API for SharePoint REST operations. Role-Based Content: Content that is shown or hidden depending on the user's Active Directory security group membership. SPFx (SharePoint Framework): A client-side development model for building custom web parts and extensions in SharePoint Online using React and TypeScript. Web Part: A reusable SPFx UI component placed on SharePoint pages to display data or provide functionality. .sppkg: The compiled SharePoint package file uploaded to the App Catalog for deployment.
+
+\section{Appendix B: Analysis Models}
+
+This appendix includes visual models illustrating the system's structure, workflow, and data relationships. The diagrams below reflect the final delivered architecture.
+
+\subsection*{System Architecture Diagram}
+
+\subsection*{Role Navigation Model}
+
+Nav bar comparison showing IT view (all tabs) vs Everyone/Guest view (one tab)
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth]{figures/SRS_page_21.png}
+\caption{Original visual content from page 21 of the Software Requirements Specification.}
+\end{figure}
+
+System Context Diagram 1.0
+
+Control Flow Diagram (CFD) 1.1
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth]{figures/SRS_page_22.png}
+\caption{Original visual content from page 22 of the Software Requirements Specification.}
+\end{figure}
+
+Level 0 DFD 1.2
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth]{figures/SRS_page_23.png}
+\caption{Original visual content from page 23 of the Software Requirements Specification.}
+\end{figure}
+
+Level 1 DFD 1.3
+
+\section{Appendix C: To Be Determined List --- Resolution Status}
+
+The following items were listed as To Be Determined in version 1.4 of this document. This appendix documents their resolution status as of the final delivery in May 2026.
+
+Item Status Resolution
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth]{figures/SRS_page_24.png}
+\caption{Original visual content from page 24 of the Software Requirements Specification.}
+\end{figure}
+
+Department-specific portal experiences Resolved Implemented as role-based views for all 9 roles. Each role sees a tailored navigation and web part set from a single site. Form migration into portal Partial Most Common Forms web part provides quick access to key forms. Full form conversion to SPFx web parts was deferred as a future enhancement due to scope. Portal Calendar component Resolved Implemented as two web parts: Portal Calendar and Upcoming Events. Both display role-filtered events from SharePoint and Outlook calendars. Permissions model for views and content Resolved Documented in full in the Access Control Specification. Role hierarchy and all web part visibility rules are defined and implemented in code. Mobile experience requirements Resolved All SPFx web parts use responsive React components with Tailwind CSS. The platform is accessible on mobile and tablet devices. Deployment and tenant governance Resolved Documented in the Transfer of Work Guide. County IT deploys the .sppkg to the SharePoint App Catalog and configures Entra ID security groups. Migration scripts are provided for content import. County IT App Catalog access Resolved The solution is packaged as a standard .sppkg file. Migration scripts (run\_full\_import.py) automate the SharePoint list and content provisioning process. Long-term tenant strategy Open County IT will determine whether to remain in the existing enterprise tenant or migrate to an independent tenant. The Transfer of Work Guide documents both scenarios. SharePoint Store marketplace submission Open Not pursued. The solution is delivered as a direct .sppkg deployment. Marketplace submission was evaluated but not required for the county's deployment path.
+
+\end{document}
